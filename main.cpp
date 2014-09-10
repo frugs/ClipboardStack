@@ -1,41 +1,51 @@
 #include <iostream>
+#include <vector>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include "ClipboardStack.h"
+#include "PastePopListener.h"
+#include "QuitListener.h"
 
 using namespace std;
 
 int main() {
-    Display *dpy = XOpenDisplay(0);
-    Window root = DefaultRootWindow(dpy);
-    XEvent ev;
+    Display *display = XOpenDisplay(0);
+    Window root = DefaultRootWindow(display);
 
-    unsigned int modifiers = ControlMask | ShiftMask;
-    int keyCode = XKeysymToKeycode(dpy, XK_Y);
-    Window grab_window = root;
-    Bool owner_events = False;
-    int pointer_mode = GrabModeAsync;
-    int keyboard_mode = GrabModeAsync;
+    ClipboardStack clipboardStack(display, root);
+    clipboardStack.initialise();
 
-    XGrabKey(dpy, keyCode, modifiers, grab_window, owner_events, pointer_mode, keyboard_mode);
+    PastePopListener pastePopListener;
 
-    XSelectInput(dpy, root, KeyPressMask);
-    while (true) {
-        bool shouldQuit = false;
-        XNextEvent(dpy, &ev);
-        switch (ev.type) {
-            case KeyPress:
-                cout << "Hot key pressed!" << endl;
-                XUngrabKey(dpy, keyCode, modifiers, grab_window);
-                shouldQuit = true;
+    QuitListener quitListener;
 
-            default:
-                break;
-        }
+    vector<IEventHandler*> eventHandlers;
+    eventHandlers.push_back(&clipboardStack);
+    eventHandlers.push_back(&pastePopListener);
+    eventHandlers.push_back(&quitListener);
 
-        if (shouldQuit)
-            break;
+    long eventMask = 0;
+    for (auto eventHandler : eventHandlers) {
+        eventMask = eventMask | eventHandler->eventMask();
     }
 
-    XCloseDisplay(dpy);
+    unsigned int keyModifiers = Mod1Mask | Mod4Mask;
+    int keyCode = XKeysymToKeycode(display, XK_V);
+
+    XGrabKey(display, keyCode, keyModifiers, root, False, GrabModeAsync, GrabModeAsync);
+
+    XSelectInput(display, root, eventMask);
+
+    while (!quitListener.shouldQuit()) {
+        XEvent event;
+        XNextEvent(display, &event);
+
+        for (auto eventHandler : eventHandlers) {
+            eventHandler->handleEvent(&event);
+        }
+    }
+
+    XUngrabKey(display, keyCode, keyModifiers, root);
+    XCloseDisplay(display);
     return 0;
 }
