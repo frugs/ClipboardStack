@@ -11,8 +11,9 @@ using namespace std;
 int main() {
     Display *display = XOpenDisplay(0);
     Window root = DefaultRootWindow(display);
+    Window window = XCreateSimpleWindow(display, root, 0, 0, 100, 100, 0, 0, 0);
 
-    ClipboardStack clipboardStack(display, root);
+    ClipboardStack clipboardStack(display, window);
     clipboardStack.initialise();
 
     PastePopListener pastePopListener;
@@ -35,6 +36,7 @@ int main() {
     XGrabKey(display, keyCode, keyModifiers, root, False, GrabModeAsync, GrabModeAsync);
 
     XSelectInput(display, root, eventMask);
+    XSelectInput(display, window, eventMask);
 
     while (!quitListener.shouldQuit()) {
         XEvent event;

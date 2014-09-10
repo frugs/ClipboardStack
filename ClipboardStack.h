@@ -12,16 +12,22 @@ public:
 
     long eventMask();
 
-    void onCopy();
-
     void onPaste();
 
     void onPastePop();
 
 private:
+
+    struct Property;
+
     Atom _XA_CLIPBOARD;
     Atom _XA_TARGETS;
 
     Display *_display;
     Window _window;
+
+    ClipboardStack::Property readProperty(Atom property);
+
+    void onCopy();
+
 };

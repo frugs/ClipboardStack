@@ -1,11 +1,8 @@
 #include "QuitListener.h"
 
 void QuitListener::handleEvent(XEvent *event) {
-    switch (event->type) {
-        case KeyPress:
-            _shouldQuit = true;
-        default:
-            break;
+    if (event->type == KeyPress) {
+        _shouldQuit = true;
     }
 }
 

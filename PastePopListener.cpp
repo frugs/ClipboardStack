@@ -4,11 +4,8 @@
 using namespace std;
 
 void PastePopListener::handleEvent(XEvent *event) {
-    switch (event->type) {
-        case KeyPress:
-            cout << "Hotkey pressed! Woo!" << endl;
-        default:
-            break;
+    if (event->type == KeyPress) {
+        cout << "Hotkey pressed! Woo!" << endl;
     }
 }
 
