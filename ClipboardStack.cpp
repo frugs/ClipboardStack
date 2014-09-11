@@ -1,6 +1,6 @@
 #include "ClipboardStack.h"
 
-void ClipboardStack::addConversion(Type type, void *data) {
+void ClipboardStack::addConversion(ArbitraryData type, ArbitraryData data) {
 
 }
 

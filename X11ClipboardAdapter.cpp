@@ -2,13 +2,6 @@
 #include <X11/Xlib.h>
 #include "X11ClipboardAdapter.h"
 
-struct X11ClipboardAdapter::Property {
-    Atom type;
-    int format;
-    unsigned long itemCount;
-    unsigned char *data;
-};
-
 X11ClipboardAdapter::Property X11ClipboardAdapter::readProperty(Atom property) {
     Atom actualType;
     int actualFormat;
@@ -63,14 +56,14 @@ void X11ClipboardAdapter::handleEvent(XEvent *event) {
             XSelectionEvent *xSelection = &event->xselection;
             Property prop = readProperty(_XA_CLIPBOARD);
 
-            if (xSelection->target == _XA_TARGETS) {
-                std::cout << "SelectionNotify->XA_TARGETS" << std::endl;
-
+            if (prop.type == _XA_TARGETS) {
                 for (int i = 0; i < prop.itemCount; i++) {
                     XConvertSelection(_display, _XA_CLIPBOARD, ((Atom *) prop.data)[i], _XA_CLIPBOARD, _window, xSelection->time);
                 }
             } else {
-                std::cout << "SelectionNotify->" << XGetAtomName(_display, xSelection->target) << std::endl;
+                std::cout << "SelectionNotify->" << XGetAtomName(_display, (Atom) xSelection->type) << std::endl;
+
+                _clipboardStack->addConversion(toType(&prop.type), toData(&prop));
             }
             break;
         }
@@ -83,4 +76,14 @@ void X11ClipboardAdapter::handleEvent(XEvent *event) {
 
 long X11ClipboardAdapter::eventMask() {
     return 0;
+}
+
+ClipboardStack::ArbitraryData X11ClipboardAdapter::toData(Property *prop) {
+    ClipboardStack::ArbitraryData data = { new char(*prop->data), prop->itemCount * prop->format/8 };
+    return data;
+}
+
+ClipboardStack::ArbitraryData X11ClipboardAdapter::toType(Atom *atom) {
+    ClipboardStack::ArbitraryData type = { (char*) new Atom(*atom), (unsigned long) sizeof(Atom) };
+    return type;
 }

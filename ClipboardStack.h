@@ -1,9 +1,24 @@
 class ClipboardStack {
 
 public:
-    struct Type { void *id; };
+    class ArbitraryData {
+    public:
+        ArbitraryData(char *start, unsigned long sizeInBytes) {
+            _start = start;
+            _sizeInBytes = sizeInBytes;
+        };
 
-    void addConversion(Type type, void *data);
+        ~ArbitraryData() {
+            delete[] _start;
+        }
+
+    private:
+        char *_start;
+        unsigned long _sizeInBytes;
+
+    };
+
+    void addConversion(ArbitraryData type, ArbitraryData data);
 
     void push();
 
