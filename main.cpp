@@ -2,7 +2,7 @@
 #include <vector>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include "ClipboardStack.h"
+#include "X11ClipboardAdapter.h"
 #include "PastePopListener.h"
 #include "QuitListener.h"
 
@@ -13,15 +13,17 @@ int main() {
     Window root = DefaultRootWindow(display);
     Window window = XCreateSimpleWindow(display, root, 0, 0, 100, 100, 0, 0, 0);
 
-    ClipboardStack clipboardStack(display, window);
-    clipboardStack.initialise();
+    ClipboardStack clipboardStack;
+
+    X11ClipboardAdapter x11ClipboardAdapter(display, window, &clipboardStack);
+    x11ClipboardAdapter.initialise();
 
     PastePopListener pastePopListener;
 
     QuitListener quitListener;
 
     vector<IEventHandler*> eventHandlers;
-    eventHandlers.push_back(&clipboardStack);
+    eventHandlers.push_back(&x11ClipboardAdapter);
     eventHandlers.push_back(&pastePopListener);
     eventHandlers.push_back(&quitListener);
 
