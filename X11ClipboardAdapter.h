@@ -33,12 +33,9 @@ private:
     Window _window;
     ClipboardStack *_clipboardStack;
 
+    unsigned long _targetCount;
+
     X11ClipboardAdapter::Property readProperty(Atom property);
 
     void onCopy();
-
-    ClipboardStack::ArbitraryData toType(Atom *atom);
-
-    ClipboardStack::ArbitraryData toData(Property *prop);
-
 };

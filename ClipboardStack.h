@@ -1,27 +1,23 @@
+#include <stack>
+#include <map>
+
 class ClipboardStack {
 
 public:
-    class ArbitraryData {
-    public:
-        ArbitraryData(char *start, unsigned long sizeInBytes) {
-            _start = start;
-            _sizeInBytes = sizeInBytes;
-        };
+    ClipboardStack();
+    ~ClipboardStack();
 
-        ~ArbitraryData() {
-            delete[] _start;
-        }
-
-    private:
-        char *_start;
-        unsigned long _sizeInBytes;
-
-    };
-
-    void addConversion(ArbitraryData type, ArbitraryData data);
+    void addConversion(unsigned long type, unsigned char *data);
 
     void push();
 
     void pop();
+
+    std::map<unsigned long, unsigned char *> * top();
+
+private:
+    std::stack<std::map<unsigned long, unsigned char*>> _stack;
+
+    bool isEmpty();
 
 };

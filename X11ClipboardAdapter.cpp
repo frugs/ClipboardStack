@@ -1,5 +1,7 @@
 #include <iostream>
+#include <vector>
 #include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #include "X11ClipboardAdapter.h"
 
 X11ClipboardAdapter::Property X11ClipboardAdapter::readProperty(Atom property) {
@@ -34,6 +36,8 @@ X11ClipboardAdapter::X11ClipboardAdapter(Display *display, Window window, Clipbo
 
     _XA_CLIPBOARD = XInternAtom(_display, "CLIPBOARD", 0);
     _XA_TARGETS = XInternAtom(_display, "TARGETS", True);
+
+    _targetCount = 0;
 }
 
 void X11ClipboardAdapter::initialise() {
@@ -56,34 +60,68 @@ void X11ClipboardAdapter::handleEvent(XEvent *event) {
             XSelectionEvent *xSelection = &event->xselection;
             Property prop = readProperty(_XA_CLIPBOARD);
 
-            if (prop.type == _XA_TARGETS) {
+            if (xSelection->target == _XA_TARGETS) {
                 for (int i = 0; i < prop.itemCount; i++) {
                     XConvertSelection(_display, _XA_CLIPBOARD, ((Atom *) prop.data)[i], _XA_CLIPBOARD, _window, xSelection->time);
                 }
+                _targetCount = prop.itemCount;
             } else {
-                std::cout << "SelectionNotify->" << XGetAtomName(_display, (Atom) xSelection->type) << std::endl;
+                std::cout << "SelectionNotify->" << XGetAtomName(_display, (Atom) xSelection->target) << std::endl;
 
-                _clipboardStack->addConversion(toType(&prop.type), toData(&prop));
+                _clipboardStack->addConversion(xSelection->target, prop.data);
+
+                if (_targetCount == _clipboardStack->top()->size()) {
+                    XSetSelectionOwner(_display, _XA_CLIPBOARD, _window, CurrentTime);
+                }
             }
             break;
         }
         case SelectionClear:
             std::cout << "SelectionClear" << std::endl;
             break;
+        case SelectionRequest: {
+            std::cout << "SelectionRequest" << std::endl;
+
+            XSelectionRequestEvent *xSelectionRequest = &event->xselectionrequest;
+
+            XSelectionEvent response;
+            response.type = SelectionNotify;
+            response.serial = (unsigned long) event->xany.send_event;
+            response.send_event = True;
+            response.display = _display;
+            response.requestor = xSelectionRequest->requestor;
+            response.selection = xSelectionRequest->selection;
+            response.property = xSelectionRequest->property;
+            response.target = None;
+            response.time = xSelectionRequest->time;
+
+            Atom target = xSelectionRequest->target;
+            if (target == _XA_TARGETS) {
+                response.target = target;
+
+                std::vector<Atom> possibleTargets;
+                for (auto &entry : *_clipboardStack->top()) {
+                    possibleTargets.push_back((Atom) entry.first);
+                }
+
+                XChangeProperty(_display, xSelectionRequest->requestor,
+                        xSelectionRequest->property, XA_ATOM, 32, PropModeReplace,
+                        (unsigned char *) possibleTargets.data(), (int) possibleTargets.size());
+            } else if (xSelectionRequest->selection == _XA_CLIPBOARD && _clipboardStack->top()->count(target) > 0) {
+                response.target = target;
+
+                unsigned char* data = _clipboardStack->top()->at(target);
+                XChangeProperty(_display, xSelectionRequest->requestor,
+                        xSelectionRequest->property, target, 8,
+                        PropModeReplace, data, sizeof(data)/ sizeof(*data));
+            }
+            XSendEvent(xSelectionRequest->display, xSelectionRequest->requestor, False, NoEventMask, (XEvent *) &response);
+            break;
+        }
         default:break;
     }
 }
 
 long X11ClipboardAdapter::eventMask() {
     return 0;
-}
-
-ClipboardStack::ArbitraryData X11ClipboardAdapter::toData(Property *prop) {
-    ClipboardStack::ArbitraryData data = { new char(*prop->data), prop->itemCount * prop->format/8 };
-    return data;
-}
-
-ClipboardStack::ArbitraryData X11ClipboardAdapter::toType(Atom *atom) {
-    ClipboardStack::ArbitraryData type = { (char*) new Atom(*atom), (unsigned long) sizeof(Atom) };
-    return type;
 }
