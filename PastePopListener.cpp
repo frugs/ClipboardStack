@@ -3,8 +3,8 @@
 
 using namespace std;
 
-void PastePopListener::handleEvent(XEvent *event) {
-    if (event->type == KeyPress) {
+void PastePopListener::handleEvent(XEvent event) {
+    if (event.type == KeyPress) {
         cout << "Hotkey pressed! Woo!" << endl;
     }
 }

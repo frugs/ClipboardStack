@@ -5,7 +5,7 @@
 class QuitListener : public IEventHandler {
 
 public:
-    void handleEvent(XEvent *event);
+    void handleEvent(XEvent event);
 
     long eventMask();
 

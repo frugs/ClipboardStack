@@ -45,7 +45,7 @@ int main() {
         XNextEvent(display, &event);
 
         for (auto eventHandler : eventHandlers) {
-            eventHandler->handleEvent(&event);
+            eventHandler->handleEvent(event);
         }
     }
 

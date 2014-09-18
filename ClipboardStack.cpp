@@ -1,3 +1,5 @@
+#include <cstring>
+#include <iostream>
 #include "ClipboardStack.h"
 
 ClipboardStack::ClipboardStack() {
@@ -10,9 +12,8 @@ ClipboardStack::~ClipboardStack() {
     }
 }
 
-void ClipboardStack::addConversion(unsigned long type, unsigned char *data) {
-    delete _stack.top()[type];
-    _stack.top()[type] = new unsigned char(*data);
+void ClipboardStack::addConversion(unsigned long type, std::vector<unsigned char> data) {
+    _stack.top()[type] = data;
 }
 
 void ClipboardStack::push() {
@@ -21,12 +22,13 @@ void ClipboardStack::push() {
 
 void ClipboardStack::pop() {
     for (auto &entry : *top()) {
-        delete entry.second;
+        entry.second.clear();
     }
     _stack.pop();
 }
 
-std::map<unsigned long, unsigned char *>* ClipboardStack::top() {
+//TODO: Replace this with a nicer API
+std::map<unsigned long, std::vector<unsigned char>>* ClipboardStack::top() {
     return &_stack.top();
 }
 

@@ -4,7 +4,7 @@
 class PastePopListener : public IEventHandler {
 
 public:
-    virtual void handleEvent(XEvent *event);
+    virtual void handleEvent(XEvent event);
 
     virtual long eventMask();
 
