@@ -1,9 +1,9 @@
 #include "QuitListener.h"
 
 void QuitListener::handleEvent(XEvent event) {
-    if (event.type == KeyPress) {
-        _shouldQuit = true;
-    }
+//    if (event.type == KeyPress) {
+//        _shouldQuit = true;
+//    }
 }
 
 long QuitListener::eventMask() {

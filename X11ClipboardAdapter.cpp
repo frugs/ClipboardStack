@@ -25,44 +25,43 @@ X11ClipboardAdapter::Property X11ClipboardAdapter::readProperty(Atom property) {
     } while (bytesAfter != 0);
 
 
-    Property result = { actualType, actualFormat, itemCount, ret };
+    Property result = { actualFormat, itemCount, ret };
     return result;
 }
 
-X11ClipboardAdapter::X11ClipboardAdapter(Display *display, Window window, ClipboardStack *clipboardStack) {
+X11ClipboardAdapter::X11ClipboardAdapter(Display *display, Window window, X11InternalAtoms x11InternalAtoms, ClipboardStack *clipboardStack) {
     _display = display;
     _window = window;
     _clipboardStack = clipboardStack;
 
-    _XA_CLIPBOARD = XInternAtom(_display, "CLIPBOARD", 0);
-    _XA_TARGETS = XInternAtom(_display, "TARGETS", True);
-
+    _x11InternalAtoms = x11InternalAtoms;
     _targetCount = 0;
 }
 
 void X11ClipboardAdapter::initialise() {
-    Window owner = XGetSelectionOwner(_display, _XA_CLIPBOARD);
+    Window owner = XGetSelectionOwner(_display, _x11InternalAtoms.getXAClipboardAtom());
 
     if (owner == None) {
-        XSetSelectionOwner(_display, _XA_CLIPBOARD, _window, CurrentTime);
+        XSetSelectionOwner(_display, _x11InternalAtoms.getXAClipboardAtom(), _window, CurrentTime);
     } else {
         onCopy();
     }
 }
 
 void X11ClipboardAdapter::onCopy() {
-    XConvertSelection(_display, _XA_CLIPBOARD, _XA_TARGETS, _XA_CLIPBOARD, _window, CurrentTime);
+    _clipboardStack->push();
+    XConvertSelection(_display, _x11InternalAtoms.getXAClipboardAtom(), _x11InternalAtoms.getXATargetsAtom(), _x11InternalAtoms.getXAClipboardAtom(), _window, CurrentTime);
 }
 
 void X11ClipboardAdapter::handleEvent(XEvent event) {
     switch (event.type) {
         case SelectionNotify: {
             XSelectionEvent xSelection = event.xselection;
-            Property prop = readProperty(_XA_CLIPBOARD);
+            Property prop = readProperty(_x11InternalAtoms.getXAClipboardAtom());
 
-            if (xSelection.target == _XA_TARGETS) {
+            if (xSelection.target == _x11InternalAtoms.getXATargetsAtom()) {
                 for (int i = 0; i < prop.itemCount; i++) {
-                    XConvertSelection(_display, _XA_CLIPBOARD, ((Atom *) prop.data)[i], _XA_CLIPBOARD, _window, xSelection.time);
+                    XConvertSelection(_display, _x11InternalAtoms.getXAClipboardAtom(), ((Atom *) prop.data)[i], _x11InternalAtoms.getXAClipboardAtom(), _window, xSelection.time);
                 }
                 _targetCount = prop.itemCount;
             } else {
@@ -74,7 +73,7 @@ void X11ClipboardAdapter::handleEvent(XEvent event) {
                 _clipboardStack->addConversion(xSelection.target, data);
 
                 if (_targetCount == _clipboardStack->top()->size()) {
-                    XSetSelectionOwner(_display, _XA_CLIPBOARD, _window, CurrentTime);
+                    XSetSelectionOwner(_display, _x11InternalAtoms.getXAClipboardAtom(), _window, CurrentTime);
                 }
             }
             break;
@@ -100,7 +99,7 @@ void X11ClipboardAdapter::handleEvent(XEvent event) {
             response.time = xSelectionRequest.time;
 
             Atom target = xSelectionRequest.target;
-            if (target == _XA_TARGETS) {
+            if (target == _x11InternalAtoms.getXATargetsAtom()) {
                 response.target = target;
 
                 std::vector<Atom> possibleTargets;
@@ -112,7 +111,7 @@ void X11ClipboardAdapter::handleEvent(XEvent event) {
                         xSelectionRequest.property, XA_ATOM, 32, PropModeReplace,
                         (unsigned char *) &possibleTargets[0], 1);
 
-            } else if (xSelectionRequest.selection == _XA_CLIPBOARD && _clipboardStack->top()->count(target) > 0) {
+            } else if (xSelectionRequest.selection == _x11InternalAtoms.getXAClipboardAtom() && _clipboardStack->top()->count(target) > 0) {
                 response.target = target;
 
                 std::vector<unsigned char> data = _clipboardStack->top()->at(target);

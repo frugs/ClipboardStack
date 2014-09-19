@@ -21,10 +21,12 @@ void ClipboardStack::push() {
 }
 
 void ClipboardStack::pop() {
-    for (auto &entry : *top()) {
-        entry.second.clear();
+    if (_stack.size() > 1) {
+        for (auto &entry : *top()) {
+            entry.second.clear();
+        }
+        _stack.pop();
     }
-    _stack.pop();
 }
 
 //TODO: Replace this with a nicer API

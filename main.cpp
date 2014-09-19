@@ -13,12 +13,14 @@ int main() {
     Window root = DefaultRootWindow(display);
     Window window = XCreateSimpleWindow(display, root, 0, 0, 100, 100, 0, 0, 0);
 
+    X11InternalAtoms x11InternalAtoms(display);
+
     ClipboardStack clipboardStack;
 
-    X11ClipboardAdapter x11ClipboardAdapter(display, window, &clipboardStack);
+    X11ClipboardAdapter x11ClipboardAdapter(display, window, x11InternalAtoms, &clipboardStack);
     x11ClipboardAdapter.initialise();
 
-    PastePopListener pastePopListener;
+    PastePopListener pastePopListener(display, root, x11InternalAtoms, &clipboardStack);
 
     QuitListener quitListener;
 
